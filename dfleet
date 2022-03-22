@@ -1,0 +1,26 @@
+#!/bin/env python
+import typer
+
+app = typer.Typer(help="Awesome CLI user manager.")
+items_app = typer.Typer()
+app.add_typer(items_app, name="items")
+
+
+@app.command()
+def cheer(name: str, lastname: str, formal: bool = False):
+    """
+    Say hi to NAME, optionally with a --lastname.
+
+    If --formal is used, say hi very formally.
+    """
+    if formal:
+        typer.echo(f"Good day Ms. {name} {lastname}.")
+    else:
+        typer.echo(f"Hello {name} {lastname}")
+
+@items_app.command()
+def delete():
+    typer.echo("Deleting user: Hiro Hamada")
+
+if __name__ == "__main__":
+    app()
