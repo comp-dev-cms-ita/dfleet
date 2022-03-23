@@ -1,0 +1,154 @@
+#!/bin/env python
+import site
+import typer
+from typing import Optional
+import os
+import json
+import dfleet.identity as identity
+import dfleet.cluster as cluster
+
+app = typer.Typer(help="Awesome CLI user manager.")
+cluster_app = typer.Typer()
+app.add_typer(cluster_app, name="cluster")
+
+jhub_url_env = "JUPYTERHUB_HOST"
+jhub_url = os.environ.get(jhub_url_env)
+
+token_env = "JUPYTERHUB_API_TOKEN"
+token = os.environ.get(token_env)
+
+verbose = False
+
+state = {"verbose": verbose, "token": token, "jhub_url": jhub_url}
+
+__version__ = "0.0.1"
+
+
+def version_callback(value: bool):
+    if value:
+        typer.echo(f"dfleet CLI Version: {__version__}")
+        raise typer.Exit()
+
+
+@app.command()
+def whoami():
+    """
+    Get user information
+    """
+    try:
+        id_dict = identity.whoami(token=state["token"], jhub_url=state["jhub_url"], verbose=state["verbose"]) 
+    except Exception as ex:
+        typer.echo(f"Failed to contact JupyterHub server: {ex}")
+        raise typer.Exit(code=1)
+
+    for k, v in id_dict.items():
+        typer.echo(f"{k}: {v}")
+
+
+@cluster_app.command()
+def create(sitename: str = "HTCondor-T2_LNL_PD", adapt: str = '{"minimum": 10, "maximum": 50}'):
+
+    try:
+        adapt_dict = json.loads(adapt)
+        cluster_dict = cluster.create(
+            sitename=sitename,
+            adapt=adapt_dict,
+            token=state["token"],
+            jhub_url=state["jhub_url"],
+            verbose=state["verbose"]) 
+    except Exception as ex:
+        typer.echo(f"Failed to create cluster: {ex}")
+        raise typer.Exit(code=1)
+
+    if cluster_dict['job_status'] == "Running":
+        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nDashboard url: {cluster_dict['dashboard_url']}")
+    else:
+        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}")
+
+    # TODO: wait and timeout. When ready adapt? rather fix it in dask remote
+
+@cluster_app.command()
+def status(cluster_id: str):
+    try:
+        cluster_dict = cluster.status(
+            cluster_id=cluster_id,
+            token=state["token"],
+            jhub_url=state["jhub_url"],
+            verbose=state["verbose"]) 
+    except Exception as ex:
+        typer.echo(f"Failed to create cluster: {ex}")
+        raise typer.Exit(code=1)
+
+    if cluster_dict['job_status'] == "Running":
+        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nDashboard url: {cluster_dict['dashboard_url']}")
+    else:
+        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}")
+
+
+@cluster_app.command()
+def list():
+    try:
+        cluster_dict = cluster.list(
+            token=state["token"],
+            jhub_url=state["jhub_url"],
+            verbose=state["verbose"]) 
+    except Exception as ex:
+        typer.echo(f"Failed to create cluster: {ex}")
+        raise typer.Exit(code=1)
+
+    for cl in cluster_dict:
+        typer.echo(f"{cl['id']} - {cl['name']}: workers {cl['workers']}")
+
+
+@cluster_app.command()
+def edit(cluster_id: str, adapt: str = '{"minimum": 10, "maximum": 50}'):
+    typer.echo("NOT IMPLEMENTED YET")
+    typer.Exit(code=1)
+
+
+@cluster_app.command()
+def delete(cluster_id: str):
+    try:
+        cluster.delete(
+            cluster_id=cluster_id,
+            token=state["token"],
+            jhub_url=state["jhub_url"],
+            verbose=state["verbose"]) 
+    except Exception as ex:
+        typer.echo(f"Failed to delete cluster: {ex}")
+        raise typer.Exit(code=1)
+
+    typer.echo(f"Deleted cluster {cluster_id}")
+
+
+@app.callback()
+def main(
+    verbose: bool = False,
+    token: str = state["token"],
+    jhub_url: str = state["jhub_url"],
+    version: Optional[bool] = typer.Option(
+        None, "--version", callback=version_callback, is_eager=True
+    )
+    ):
+    """
+    Manage DASK clusters in an awesome CLI app.
+    """
+    if verbose:
+        typer.echo("Will write verbose output")
+        state["verbose"] = True
+
+    if not token:
+        typer.echo(f"No Jupyterhub token found. Please specifiy one either by {token_env} env or via --token global option")
+        raise typer.Exit(code=1)
+    else:
+        state["token"] = token
+
+    if not jhub_url:
+        typer.echo(f"No Jupyterhub endpointi specified. Please specifiy one either by {jhub_url_env} env or via --jhub_url global option")
+        raise typer.Exit(code=1)
+    else:
+        state["jhub_url"] = jhub_url
+
+
+if __name__ == "__main__":
+    app()
