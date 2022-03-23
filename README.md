@@ -41,6 +41,12 @@ For more options:
 dfleet  cluster create --help
 ```
 
+## Get cluster status
+
+```bash
+dfleet cluster status <PUT CLUSTER ID HERE>
+```
+
 ## Delete a cluster
 
 ```bash
