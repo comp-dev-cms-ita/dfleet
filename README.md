@@ -22,7 +22,11 @@ pip install git+https://github.com/comp-dev-cms-ita/dfleet
 - Setup the environment
 
 ```bash
+# you do NOT need to set JUPYTERHUB_API_TOKEN  if you sit on a jlab instance
+# this is only needed if you are running the CLI from your laptop
 export JUPYTERHUB_API_TOKEN=<PUT JHUB TOKEN HERE>
+
+
 export JUPYTERHUB_HOST=https://cms-it-hub.cloud.cnaf.infn.it
 ```
 
