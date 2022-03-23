@@ -154,8 +154,21 @@ def list():
 
 @cluster_app.command()
 def edit(cluster_id: str, adapt: str = '{"minimum": 10, "maximum": 50}'):
-    typer.echo("NOT IMPLEMENTED YET")
-    typer.Exit(code=1)
+
+    try:
+        adapt_dict = json.loads(adapt)
+        cluster.edit(
+            cluster_id=cluster_id,
+            adapt=adapt_dict,
+            token=state["token"],
+            jhub_url=state["jhub_url"],
+            verbose=state["verbose"]
+            )
+    except Exception as ex:
+        typer.echo(f"Failed to patch cluster: {ex}")
+        raise typer.Exit(code=1)
+
+    typer.echo(f"{cluster_id} updated.")
 
 
 @cluster_app.command()
