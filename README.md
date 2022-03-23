@@ -41,6 +41,12 @@ For more options:
 dfleet  cluster create --help
 ```
 
+## Edit cluster
+
+```bash
+dfleet  cluster edit --adapt '{"minimum": 20, "maximum": 60}'  <PUT CLUSTER ID HERE>
+```
+
 ## Get cluster status
 
 ```bash
