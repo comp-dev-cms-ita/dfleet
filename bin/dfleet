@@ -1,7 +1,8 @@
 #!/bin/env python
-import site
+from datetime import datetime, timedelta
+import time
 import typer
-from typing import Optional
+from typing import Optional, List
 import os
 import json
 import dfleet.identity as identity
@@ -46,7 +47,7 @@ def whoami():
 
 
 @cluster_app.command()
-def create(sitename: str = "HTCondor-T2_LNL_PD", adapt: str = '{"minimum": 10, "maximum": 50}'):
+def create(sitename: str = "HTCondor-T2_LNL_PD", adapt: str = '{"minimum": 10, "maximum": 50}', wait: bool = True, timeout: int = 300):
 
     try:
         adapt_dict = json.loads(adapt)
@@ -55,15 +56,51 @@ def create(sitename: str = "HTCondor-T2_LNL_PD", adapt: str = '{"minimum": 10, "
             adapt=adapt_dict,
             token=state["token"],
             jhub_url=state["jhub_url"],
-            verbose=state["verbose"]) 
+            verbose=state["verbose"])
     except Exception as ex:
         typer.echo(f"Failed to create cluster: {ex}")
         raise typer.Exit(code=1)
 
-    if cluster_dict['job_status'] == "Running":
-        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nDashboard url: {cluster_dict['dashboard_url']}\nScheduler address: {cluster_dict['scheduler_address']}")
+    if not wait: 
+        if cluster_dict['job_status'] == "Running":
+            typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nDashboard url: {cluster_dict['dashboard_url']}\nScheduler address: {cluster_dict['scheduler_address']}")
+        else:
+            typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}")
     else:
-        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}")
+        start = datetime.now()
+        while datetime.now() < start + timedelta(seconds=timeout):
+            try:
+                status_dict = cluster.status(
+                    cluster_id=cluster_dict['id'],
+                    token=state["token"],
+                    jhub_url=state["jhub_url"],
+                    verbose=state["verbose"])
+            except Exception as ex:
+                typer.echo(f"Failed to create cluster: {ex}")
+                raise typer.Exit(code=1)
+
+            if status_dict['job_status'] != "Running":
+                typer.echo(f"job_status: {status_dict['job_status']}")
+                time.sleep(10)
+            else:
+                typer.echo(f"Cluster id: {status_dict['id']}\nJob status: {status_dict['job_status']}\nDashboard url: {status_dict['dashboard_url']}\nScheduler address: {status_dict['scheduler_address']}")
+                break
+
+        if datetime.now() > start + timedelta(seconds=timeout):
+            typer.echo("Timeout waiting for cluster to come up... Deleting it...")
+            try:
+                cluster.delete(
+                    cluster_id=cluster_dict['id'],
+                    token=state["token"],
+                    jhub_url=state["jhub_url"],
+                    verbose=state["verbose"])
+            except Exception as ex:
+                typer.echo(f"Failed to delete cluster: {ex}")
+                raise typer.Exit(code=1)
+
+            typer.echo(f"Deleted cluster {cluster_dict['id']}")
+            typer.Exit(code=1)
+
 
     # TODO: --wait and --timeout. When ready adapt? rather fix it in dask remote. If timeout delete cluster
 
@@ -109,18 +146,19 @@ def edit(cluster_id: str, adapt: str = '{"minimum": 10, "maximum": 50}'):
 
 
 @cluster_app.command()
-def delete(cluster_id: str):
-    try:
-        cluster.delete(
-            cluster_id=cluster_id,
-            token=state["token"],
-            jhub_url=state["jhub_url"],
-            verbose=state["verbose"]) 
-    except Exception as ex:
-        typer.echo(f"Failed to delete cluster: {ex}")
-        raise typer.Exit(code=1)
+def delete(cluster_id_list: Optional[List[str]]):
+    for cluster_id in cluster_id_list:
+        try:
+            cluster.delete(
+                cluster_id=cluster_id,
+                token=state["token"],
+                jhub_url=state["jhub_url"],
+                verbose=state["verbose"]) 
+        except Exception as ex:
+            typer.echo(f"Failed to delete cluster: {ex}")
+            raise typer.Exit(code=1)
 
-    typer.echo(f"Deleted cluster {cluster_id}")
+        typer.echo(f"Deleted cluster {cluster_id}")
 
 
 @app.callback()
