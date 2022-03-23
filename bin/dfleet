@@ -22,7 +22,7 @@ verbose = False
 
 state = {"verbose": verbose, "token": token, "jhub_url": jhub_url}
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 def version_callback(value: bool):
@@ -84,6 +84,19 @@ def create(sitename: str = "HTCondor-T2_LNL_PD", adapt: str = '{"minimum": 10, "
                 time.sleep(10)
             else:
                 typer.echo(f"Cluster id: {status_dict['id']}\nJob status: {status_dict['job_status']}\nDashboard url: {status_dict['dashboard_url']}\nScheduler address: {status_dict['scheduler_address']}")
+
+                # cluster running. now apply adapt
+                try:
+                    cluster.edit(
+                        cluster_id=status_dict['id'],
+                        adapt=adapt_dict,
+                        token=state["token"],
+                        jhub_url=state["jhub_url"],
+                        verbose=state["verbose"]
+                        )
+                except Exception as ex:
+                    typer.echo(f"Failed to patch cluster: {ex}")
+                    raise typer.Exit(code=1)
                 break
 
         if datetime.now() > start + timedelta(seconds=timeout):
@@ -117,9 +130,9 @@ def status(cluster_id: str):
         raise typer.Exit(code=1)
 
     if cluster_dict['job_status'] == "Running":
-        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nDashboard url: {cluster_dict['dashboard_url']}\nScheduler address: {cluster_dict['scheduler_address']}")
+        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nWorkers:{cluster_dict['workers']}\nDashboard url: {cluster_dict['dashboard_url']}\nScheduler address: {cluster_dict['scheduler_address']}")
     else:
-        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}")
+        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nWorkers:{cluster_dict['workers']}")
 
     # TODO: insert --wait option
 

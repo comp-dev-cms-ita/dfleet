@@ -113,3 +113,35 @@ def delete(token: str, jhub_url: str, cluster_id: str, verbose: bool = False) ->
         raise ex
 
     return
+
+
+def edit(token: str, jhub_url: str, cluster_id: str, adapt: dict = {"minimum": 10, "maximum": 50}, verbose: bool = False) -> dict:
+    headers = {'Authorization': f'token {token}'}
+    if verbose:
+        print(headers)
+
+    try:
+        id_dict = identity.whoami(token=token, jhub_url=jhub_url, verbose=verbose) 
+    except Exception as ex:
+        raise ex
+
+    url = jhub_url + f"/user/{id_dict['name']}/dask/clusters/{cluster_id}"
+
+    if verbose:
+        print(url)
+        print(adapt)
+
+    try:
+        r = requests.patch(url, data=json.dumps({"adapt": adapt}), headers=headers)
+    except Exception as ex:
+        raise ex
+
+    r_enriched = r.json()
+
+    r_enriched['dashboard_url'] = generate_dashboard_url(
+        name=id_dict['name'],
+        cluster_id=r_enriched['id'],
+        jhub_url=jhub_url
+    )
+
+    return r_enriched
