@@ -61,11 +61,11 @@ def create(sitename: str = "HTCondor-T2_LNL_PD", adapt: str = '{"minimum": 10, "
         raise typer.Exit(code=1)
 
     if cluster_dict['job_status'] == "Running":
-        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nDashboard url: {cluster_dict['dashboard_url']}")
+        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nDashboard url: {cluster_dict['dashboard_url']}\nScheduler address: {cluster_dict['scheduler_address']}")
     else:
         typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}")
 
-    # TODO: wait and timeout. When ready adapt? rather fix it in dask remote
+    # TODO: --wait and --timeout. When ready adapt? rather fix it in dask remote. If timeout delete cluster
 
 @cluster_app.command()
 def status(cluster_id: str):
@@ -80,9 +80,11 @@ def status(cluster_id: str):
         raise typer.Exit(code=1)
 
     if cluster_dict['job_status'] == "Running":
-        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nDashboard url: {cluster_dict['dashboard_url']}")
+        typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}\nDashboard url: {cluster_dict['dashboard_url']}\nScheduler address: {cluster_dict['scheduler_address']}")
     else:
         typer.echo(f"Cluster id: {cluster_dict['id']}\nJob status: {cluster_dict['job_status']}")
+
+    # TODO: insert --wait option
 
 
 @cluster_app.command()
