@@ -131,12 +131,14 @@ def edit(token: str, jhub_url: str, cluster_id: str, adapt: dict = None, workers
         print(url)
         print(adapt)
 
+    print(adapt)
+    print(workers)
     if adapt:
         try:
             r = requests.patch(url, data=json.dumps({"adapt": adapt}), headers=headers)
         except Exception as ex:
             raise ex
-    if workers:
+    else:
         try:
             r = requests.patch(url, data=json.dumps({"workers": workers}), headers=headers)
         except Exception as ex:
