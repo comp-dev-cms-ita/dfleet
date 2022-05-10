@@ -115,7 +115,7 @@ def delete(token: str, jhub_url: str, cluster_id: str, verbose: bool = False) ->
     return
 
 
-def edit(token: str, jhub_url: str, cluster_id: str, adapt: dict = {"minimum": 10, "maximum": 50}, verbose: bool = False) -> dict:
+def edit(token: str, jhub_url: str, cluster_id: str, adapt: dict = None, workers: int = None, verbose: bool = False) -> dict:
     headers = {'Authorization': f'token {token}'}
     if verbose:
         print(headers)
@@ -131,10 +131,16 @@ def edit(token: str, jhub_url: str, cluster_id: str, adapt: dict = {"minimum": 1
         print(url)
         print(adapt)
 
-    try:
-        r = requests.patch(url, data=json.dumps({"adapt": adapt}), headers=headers)
-    except Exception as ex:
-        raise ex
+    if adapt:
+        try:
+            r = requests.patch(url, data=json.dumps({"adapt": adapt}), headers=headers)
+        except Exception as ex:
+            raise ex
+    if workers:
+        try:
+            r = requests.patch(url, data=json.dumps({"workers": workers}), headers=headers)
+        except Exception as ex:
+            raise ex 
 
     r_enriched = r.json()
 
